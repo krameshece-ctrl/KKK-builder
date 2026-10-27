@@ -1,53 +1,1209 @@
 <!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiverse Engine - Infinite Website Builder</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Dynamic Preloads -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@500;700;900&family=Playfair+Display:ital,wght@0,600;1,400&family=Space+Grotesk:wght@400;600;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f3ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            900: '#0f172a',
+                            950: '#090d16'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom UI Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glow-accent {
+            box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.35);
+        }
+
+        /* Node graph canvas styling */
+        #portalGraphCanvas {
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col overflow-hidden select-none">
+
+    <!-- Top Navigation Bar -->
+    <header class="h-14 border-b border-slate-800 bg-slate-900/90 backdrop-filter backdrop-blur-md px-4 flex items-center justify-between shrink-0 z-20">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                <i class="fa-solid font-bold fa-atom text-lg animate-spin" style="animation-duration: 12s;"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-sm leading-none bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 via-purple-200 to-pink-300">
+                    MULTIVERSE ENGINE
+                </h1>
+                <p class="text-[10px] text-slate-400 font-mono tracking-wider mt-0.5">INFINITE WEBSITE BUILDER v2.5</p>
+            </div>
+        </div>
+
+        <!-- Central Action Bar -->
+        <div class="flex items-center space-x-2">
+            <button id="btnJumpNext" onclick="engine.generateUniverse()" class="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium text-xs flex items-center space-x-2 shadow-lg shadow-indigo-600/30 transition-all transform active:scale-95">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>Warp to Next Universe</span>
+            </button>
+            <button onclick="engine.randomizeParameters()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition" title="Randomize Styling Controls">
+                <i class="fa-solid fa-dice"></i>
+            </button>
+            <button id="btnAudioToggle" onclick="audioEngine.toggleMute()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs transition" title="Toggle Sound Synth">
+                <i id="audioIcon" class="fa-solid fa-volume-high"></i>
+            </button>
+        </div>
+
+        <!-- Right Side Viewport & Export Controls -->
+        <div class="flex items-center space-x-3">
+            <!-- Viewport Switcher -->
+            <div class="bg-slate-950 p-1 rounded-lg border border-slate-800 flex items-center space-x-1">
+                <button onclick="ui.setViewport('desktop')" id="vp-desktop" class="vp-btn p-1.5 px-2.5 rounded text-xs font-medium bg-slate-800 text-indigo-400">
+                    <i class="fa-solid fa-desktop"></i>
+                </button>
+                <button onclick="ui.setViewport('tablet')" id="vp-tablet" class="vp-btn p-1.5 px-2.5 rounded text-xs font-medium text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-tablet-screen-button"></i>
+                </button>
+                <button onclick="ui.setViewport('mobile')" id="vp-mobile" class="vp-btn p-1.5 px-2.5 rounded text-xs font-medium text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                </button>
+            </div>
+
+            <!-- Export Button -->
+            <button onclick="engine.exportSingleHTML()" class="px-3 py-1.5 rounded-lg border border-slate-700 hover:border-slate-500 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-download text-indigo-400"></i>
+                <span>Export Single HTML</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- Left Sidebar: Controls & Portal Tree -->
+        <aside id="sidebar" class="w-80 border-r border-slate-800 bg-slate-900/50 flex flex-col shrink-0 z-10 transition-all duration-300">
+            <!-- Sidebar Navigation Tabs -->
+            <div class="flex border-b border-slate-800 text-xs font-medium text-slate-400">
+                <button onclick="ui.switchSideTab('generator')" id="sideTab-generator" class="flex-1 py-3 border-b-2 border-indigo-500 text-indigo-400 font-semibold bg-slate-800/40">
+                    <i class="fa-solid fa-sliders mr-1.5"></i>Generator
+                </button>
+                <button onclick="ui.switchSideTab('portals')" id="sideTab-portals" class="flex-1 py-3 border-b-2 border-transparent hover:text-slate-200">
+                    <i class="fa-solid fa-network-wired mr-1.5"></i>Universe Tree (<span id="portalCount">0</span>)
+                </button>
+            </div>
+
+            <!-- Generator Controls Panel -->
+            <div id="panel-generator" class="flex-1 overflow-y-auto p-4 space-y-5">
+                <!-- Topic & Prompt Input -->
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                        <span><i class="fa-solid fa-lightbulb text-amber-400 mr-1.5"></i> Topic / Brand Prompt</span>
+                        <button onclick="engine.setSurpriseTopic()" class="text-[10px] text-indigo-400 hover:underline">Surprise Me</button>
+                    </label>
+                    <input type="text" id="inputTopic" placeholder="e.g. Cyberpunk Ramen Bar, Zen Yoga Studio..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition">
+                </div>
+
+                <!-- Archetype Template Selector -->
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-slate-300 block">
+                        <i class="fa-solid fa-cubes text-purple-400 mr-1.5"></i> Site Archetype
+                    </label>
+                    <select id="selectArchetype" onchange="engine.onArchetypeChange()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                        <option value="saas">SaaS Product Landing</option>
+                        <option value="portfolio">Personal / Creative Portfolio</option>
+                        <option value="cyberpunk">Cyberpunk Terminal Arcade</option>
+                        <option value="ecommerce">E-Commerce Boutique</option>
+                        <option value="dashboard">Analytics Glass Dashboard</option>
+                        <option value="blog">Editorial / Studio Magazine</option>
+                        <option value="geocities">Retro 90s Webpage</option>
+                        <option value="zen">Zen Sound Sanctuary</option>
+                    </select>
+                </div>
+
+                <!-- Visual Aesthetic Style Select -->
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-slate-300 block">
+                        <i class="fa-solid fa-palette text-pink-400 mr-1.5"></i> Visual Aesthetic Theme
+                    </label>
+                    <select id="selectStyle" onchange="engine.applyStylePreset()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                        <option value="dark-saas">Dark Mode SaaS (Indigo/Slate)</option>
+                        <option value="cyberpunk">Cyberpunk Neon (Magenta/Cyan)</option>
+                        <option value="minimalist">Minimalist Studio (Monochrome)</option>
+                        <option value="luxury">Luxury Editorial (Gold/Emerald/Serif)</option>
+                        <option value="glassmorphism">Glassmorphism Blur (Vibrant Mesh)</option>
+                        <option value="neumorphic">Soft Neumorphic Light</option>
+                        <option value="retro90s">Geocities 1998 (Glitch/Vaporwave)</option>
+                    </select>
+                </div>
+
+                <hr class="border-slate-800">
+
+                <!-- Procedural Parameters Sliders -->
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Procedural Controls</h3>
+                    
+                    <!-- Color Hue Slider -->
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-400 mb-1">
+                            <span>Primary Hue Accent</span>
+                            <span id="valHue" class="font-mono text-indigo-400">240°</span>
+                        </div>
+                        <input type="range" id="slideHue" min="0" max="360" value="240" oninput="engine.updateParam('hue', this.value)" class="w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <!-- Border Radius Slider -->
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-400 mb-1">
+                            <span>Corner Roundness</span>
+                            <span id="valRadius" class="font-mono text-indigo-400">12px</span>
+                        </div>
+                        <input type="range" id="slideRadius" min="0" max="32" value="12" oninput="engine.updateParam('radius', this.value)" class="w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <!-- Layout Density -->
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-400 mb-1">
+                            <span>Section Spacing / Density</span>
+                            <span id="valDensity" class="font-mono text-indigo-400">Medium</span>
+                        </div>
+                        <input type="range" id="slideDensity" min="1" max="3" value="2" oninput="engine.updateParam('density', this.value)" class="w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <!-- Dynamic Google Font Family -->
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Typography Font Family</label>
+                        <select id="selectFont" onchange="engine.updateParam('font', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none">
+                            <option value="Inter">Inter (Clean Modern)</option>
+                            <option value="Space Grotesk">Space Grotesk (Tech/Modern)</option>
+                            <option value="Playfair Display">Playfair Display (Luxury Serif)</option>
+                            <option value="Orbitron">Orbitron (Futuristic Display)</option>
+                            <option value="Fira Code">Fira Code (Monospace)</option>
+                            <option value="Press Start 2P">Press Start 2P (Retro 8-bit)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="engine.synthesizeCurrent()" class="w-full py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center space-x-2 transition">
+                    <i class="fa-solid fa-rotate text-indigo-400"></i>
+                    <span>Re-Synthesize Site</span>
+                </button>
+            </div>
+
+            <!-- Portal Tree / Universe Graph Panel -->
+            <div id="panel-portals" class="flex-1 flex flex-col hidden overflow-hidden">
+                <div class="p-3 bg-slate-950/50 border-b border-slate-800 flex justify-between items-center text-xs">
+                    <span class="text-slate-400">Interactive Multiverse Graph</span>
+                    <button onclick="portalTree.resetNodes()" class="text-indigo-400 hover:underline text-[11px]">Clear Nodes</button>
+                </div>
+                <!-- Interactive Node Graph Canvas -->
+                <div class="flex-1 relative">
+                    <canvas id="portalGraphCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+                    <div class="absolute bottom-2 left-2 text-[10px] text-slate-500 bg-slate-950/80 px-2 py-1 rounded border border-slate-800 pointer-events-none">
+                        Click node to jump universe
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Content Area: Code Editor & Live Frame Viewport -->
+        <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden relative">
+            
+            <!-- Viewport Workspace Tabs -->
+            <div class="h-10 border-b border-slate-800 bg-slate-900/40 px-3 flex items-center justify-between shrink-0">
+                <div class="flex space-x-1" id="sandboxTabs">
+                    <button onclick="ui.switchMainTab('preview')" id="tab-preview" class="px-3 py-1.5 rounded-md text-xs font-medium bg-slate-800 text-indigo-400 flex items-center space-x-1.5 border border-slate-700/60">
+                        <i class="fa-solid fa-eye"></i>
+                        <span>Live Preview</span>
+                    </button>
+                    <button onclick="ui.switchMainTab('html')" id="tab-html" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 flex items-center space-x-1.5">
+                        <i class="fa-brands fa-html5 text-orange-400"></i>
+                        <span>HTML</span>
+                    </button>
+                    <button onclick="ui.switchMainTab('css')" id="tab-css" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 flex items-center space-x-1.5">
+                        <i class="fa-brands fa-css3-alt text-blue-400"></i>
+                        <span>CSS</span>
+                    </button>
+                    <button onclick="ui.switchMainTab('js')" id="tab-js" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 flex items-center space-x-1.5">
+                        <i class="fa-brands fa-js text-yellow-400"></i>
+                        <span>JS Logic</span>
+                    </button>
+                    <button onclick="ui.switchMainTab('config')" id="tab-config" class="px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-gear text-purple-400"></i>
+                        <span>AI Manifest</span>
+                    </button>
+                </div>
+
+                <!-- Status indicator -->
+                <div class="flex items-center space-x-2 text-[11px] text-slate-400 font-mono">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="statusUniverseId">UNIVERSE #0000</span>
+                </div>
+            </div>
+
+            <!-- Viewport Container -->
+            <div class="flex-1 bg-slate-950 p-3 flex items-center justify-center overflow-hidden relative">
+                
+                <!-- 1. LIVE PREVIEW CONTAINER -->
+                <div id="view-preview" class="w-full h-full flex items-center justify-center transition-all duration-300">
+                    <div id="viewportFrame" class="w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 shadow-2xl transition-all duration-300 flex flex-col">
+                        <!-- Simulated browser bar for iframe -->
+                        <div class="h-7 bg-slate-900 border-b border-slate-800/80 px-3 flex items-center justify-between text-[11px] text-slate-400">
+                            <div class="flex items-center space-x-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block"></span>
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block"></span>
+                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block"></span>
+                            </div>
+                            <div class="bg-slate-950 px-4 py-0.5 rounded-md border border-slate-800/80 text-[10px] font-mono text-slate-400 flex items-center space-x-1.5 max-w-md truncate">
+                                <i class="fa-solid fa-lock text-emerald-500 text-[9px]"></i>
+                                <span id="browserUrl">https://multiverse.internal/site-0000</span>
+                            </div>
+                            <button onclick="engine.reloadFrame()" class="hover:text-slate-200"><i class="fa-solid fa-rotate-right"></i></button>
+                        </div>
+
+                        <!-- Rendered Iframe -->
+                        <iframe id="sitePreviewFrame" class="w-full flex-1 bg-white border-none"></iframe>
+                    </div>
+                </div>
+
+                <!-- 2. HTML EDITOR -->
+                <div id="view-html" class="w-full h-full hidden flex flex-col">
+                    <textarea id="codeHtml" oninput="engine.onManualCodeEdit()" class="w-full h-full bg-slate-900 text-slate-200 font-mono text-xs p-4 rounded-xl border border-slate-800 focus:outline-none focus:border-indigo-500/60 resize-none leading-relaxed" spellcheck="false"></textarea>
+                </div>
+
+                <!-- 3. CSS EDITOR -->
+                <div id="view-css" class="w-full h-full hidden flex flex-col">
+                    <textarea id="codeCss" oninput="engine.onManualCodeEdit()" class="w-full h-full bg-slate-900 text-slate-200 font-mono text-xs p-4 rounded-xl border border-slate-800 focus:outline-none focus:border-indigo-500/60 resize-none leading-relaxed" spellcheck="false"></textarea>
+                </div>
+
+                <!-- 4. JS EDITOR -->
+                <div id="view-js" class="w-full h-full hidden flex flex-col">
+                    <textarea id="codeJs" oninput="engine.onManualCodeEdit()" class="w-full h-full bg-slate-900 text-slate-200 font-mono text-xs p-4 rounded-xl border border-slate-800 focus:outline-none focus:border-indigo-500/60 resize-none leading-relaxed" spellcheck="false"></textarea>
+                </div>
+
+                <!-- 5. CONFIG MANIFEST -->
+                <div id="view-config" class="w-full h-full hidden overflow-y-auto p-4 bg-slate-900 rounded-xl border border-slate-800">
+                    <h3 class="text-sm font-bold text-slate-200 mb-3 font-mono">Synthesized AI Site Manifest</h3>
+                    <pre id="jsonManifest" class="bg-slate-950 p-4 rounded-lg border border-slate-800 text-emerald-400 font-mono text-xs overflow-x-auto"></pre>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- AUDIO SYNTHESIS & ENGINE LOGIC -->
+    <script>
+        /**
+         * Web Audio Synthesizer for UI Effects & Ambient Soundscapes
+         */
+        class AudioSynthEngine {
+            constructor() {
+                this.ctx = null;
+                this.isMuted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+            }
+
+            playWarpSound() {
+                if (this.isMuted) return;
+                this.init();
+                
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(880, now + 0.35);
+
+                gain.gain.setValueAtTime(0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+
+            playClickSound() {
+                if (this.isMuted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, now);
+                osc.frequency.exponentialRampToValueAtTime(220, now + 0.08);
+
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+
+            toggleMute() {
+                this.isMuted = !this.isMuted;
+                const btn = document.getElementById('audioIcon');
+                if (this.isMuted) {
+                    btn.className = 'fa-solid fa-volume-xmark text-rose-400';
+                } else {
+                    btn.className = 'fa-solid fa-volume-high text-slate-400';
+                    this.playClickSound();
+                }
+            }
+        }
+
+        const audioEngine = new AudioSynthEngine();
+
+        /**
+         * Interactive Multiverse Portal Tree Graph Canvas Renderer
+         */
+        class PortalTreeGraph {
+            constructor() {
+                this.nodes = [];
+                this.canvas = document.getElementById('portalGraphCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.animFrame = null;
+                this.setupResize();
+                this.setupInteraction();
+            }
+
+            setupResize() {
+                const resize = () => {
+                    const rect = this.canvas.parentElement.getBoundingClientRect();
+                    this.canvas.width = rect.width;
+                    this.canvas.height = rect.height;
+                    this.draw();
+                };
+                window.addEventListener('resize', resize);
+                setTimeout(resize, 100);
+            }
+
+            addNode(id, title, styleKey) {
+                const x = Math.random() * (this.canvas.width - 60) + 30;
+                const y = Math.random() * (this.canvas.height - 60) + 30;
+                const colors = {
+                    'cyberpunk': '#f43f5e',
+                    'luxury': '#eab308',
+                    'dark-saas': '#6366f1',
+                    'glassmorphism': '#06b6d4',
+                    'retro90s': '#10b981',
+                    'minimalist': '#94a3b8',
+                    'neumorphic': '#a855f7'
+                };
+                
+                const newNode = {
+                    id: id,
+                    title: title,
+                    x: x,
+                    y: y,
+                    radius: 8,
+                    color: colors[styleKey] || '#6366f1',
+                    connections: this.nodes.length > 0 ? [this.nodes[this.nodes.length - 1].id] : []
+                };
+
+                this.nodes.push(newNode);
+                document.getElementById('portalCount').textContent = this.nodes.length;
+                this.draw();
+            }
+
+            resetNodes() {
+                this.nodes = [];
+                document.getElementById('portalCount').textContent = 0;
+                this.draw();
+            }
+
+            setupInteraction() {
+                this.canvas.addEventListener('click', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const clickY = e.clientY - rect.top;
+
+                    this.nodes.forEach(node => {
+                        const dist = Math.hypot(node.x - clickX, node.y - clickY);
+                        if (dist <= node.radius + 8) {
+                            audioEngine.playClickSound();
+                            engine.loadUniverseById(node.id);
+                        }
+                    });
+                });
+            }
+
+            draw() {
+                if (!this.ctx) return;
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw connections
+                this.ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+                this.ctx.lineWidth = 1.5;
+                this.nodes.forEach(node => {
+                    node.connections.forEach(targetId => {
+                        const targetNode = this.nodes.find(n => n.id === targetId);
+                        if (targetNode) {
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(node.x, node.y);
+                            this.ctx.lineTo(targetNode.x, targetNode.y);
+                            this.ctx.stroke();
+                        }
+                    });
+                });
+
+                // Draw nodes
+                this.nodes.forEach((node) => {
+                    // Outer aura glow
+                    this.ctx.beginPath();
+                    this.ctx.arc(node.x, node.y, node.radius + 4, 0, Math.PI * 2);
+                    this.ctx.fillStyle = node.color + '33';
+                    this.ctx.fill();
+
+                    // Core circle
+                    this.ctx.beginPath();
+                    this.ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = node.color;
+                    this.ctx.fill();
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeStyle = '#ffffff';
+                    this.ctx.stroke();
+
+                    // Title label
+                    this.ctx.font = '9px Fira Code';
+                    this.ctx.fillStyle = '#cbd5e1';
+                    this.ctx.fillText(`[${node.id}] ${node.title.substring(0, 10)}...`, node.x + 12, node.y + 3);
+                });
+            }
+        }
+
+        const portalTree = new PortalTreeGraph();
+
+        /**
+         * Procedural Content & Template Synthesis Engine
+         */
+        class ProceduralEngine {
+            constructor() {
+                this.currentUniverse = null;
+                this.universeHistory = [];
+                this.surpriseTopics = [
+                    "Cyberpunk Ramen Noodle Bar",
+                    "Zen Minimalist Meditation Pods",
+                    "Retro 80s Synthesizer Store",
+                    "Quantum Neural Computing SaaS",
+                    "Apothecary & Herbal Alchemy",
+                    "Neo-Tokyo Skateboarding Collective",
+                    "Deep Sea Oceanic Research Station",
+                    "Interstellar Space Logistics Inc."
+                ];
+
+                this.params = {
+                    hue: 240,
+                    radius: 12,
+                    density: 2,
+                    font: 'Inter',
+                    archetype: 'saas',
+                    style: 'dark-saas'
+                };
+            }
+
+            init() {
+                this.generateUniverse();
+            }
+
+            setSurpriseTopic() {
+                const randomTopic = this.surpriseTopics[Math.floor(Math.random() * this.surpriseTopics.length)];
+                document.getElementById('inputTopic').value = randomTopic;
+                audioEngine.playClickSound();
+                this.generateUniverse();
+            }
+
+            randomizeParameters() {
+                this.params.hue = Math.floor(Math.random() * 360);
+                this.params.radius = Math.floor(Math.random() * 24);
+                this.params.density = Math.floor(Math.random() * 3) + 1;
+                
+                const fonts = ['Inter', 'Space Grotesk', 'Playfair Display', 'Orbitron', 'Fira Code', 'Press Start 2P'];
+                this.params.font = fonts[Math.floor(Math.random() * fonts.length)];
+
+                const archetypes = ['saas', 'portfolio', 'cyberpunk', 'ecommerce', 'dashboard', 'blog', 'geocities', 'zen'];
+                this.params.archetype = archetypes[Math.floor(Math.random() * archetypes.length)];
+
+                // Update UI elements
+                document.getElementById('slideHue').value = this.params.hue;
+                document.getElementById('slideRadius').value = this.params.radius;
+                document.getElementById('slideDensity').value = this.params.density;
+                document.getElementById('selectFont').value = this.params.font;
+                document.getElementById('selectArchetype').value = this.params.archetype;
+                
+                this.updateParamLabels();
+                this.generateUniverse();
+            }
+
+            updateParam(param, value) {
+                this.params[param] = value;
+                this.updateParamLabels();
+                this.synthesizeCurrent();
+            }
+
+            updateParamLabels() {
+                document.getElementById('valHue').textContent = `${this.params.hue}°`;
+                document.getElementById('valRadius').textContent = `${this.params.radius}px`;
+                const dMap = {1: 'Compact', 2: 'Medium', 3: 'Spacious'};
+                document.getElementById('valDensity').textContent = dMap[this.params.density] || 'Medium';
+            }
+
+            onArchetypeChange() {
+                this.params.archetype = document.getElementById('selectArchetype').value;
+                this.generateUniverse();
+            }
+
+            applyStylePreset() {
+                this.params.style = document.getElementById('selectStyle').value;
+                this.synthesizeCurrent();
+            }
+
+            generateUniverse() {
+                audioEngine.playWarpSound();
+
+                const universeId = 'U-' + Math.floor(1000 + Math.random() * 9000);
+                let topic = document.getElementById('inputTopic').value.trim();
+                if (!topic) {
+                    topic = "Hyperion Nexa Dynamics";
+                }
+
+                this.currentUniverse = {
+                    id: universeId,
+                    topic: topic,
+                    archetype: this.params.archetype,
+                    style: this.params.style,
+                    params: { ...this.params }
+                };
+
+                this.universeHistory.push(this.currentUniverse);
+                portalTree.addNode(universeId, topic, this.params.style);
+                
+                document.getElementById('statusUniverseId').textContent = `${universeId} • ${topic.toUpperCase()}`;
+                document.getElementById('browserUrl').textContent = `https://multiverse.internal/${universeId.toLowerCase()}`;
+
+                this.synthesizeCurrent();
+            }
+
+            loadUniverseById(id) {
+                const found = this.universeHistory.find(u => u.id === id);
+                if (found) {
+                    this.currentUniverse = found;
+                    this.params = { ...found.params };
+
+                    // Sync UI
+                    document.getElementById('inputTopic').value = found.topic;
+                    document.getElementById('selectArchetype').value = found.archetype;
+                    document.getElementById('selectStyle').value = found.style;
+                    document.getElementById('slideHue').value = found.params.hue;
+                    document.getElementById('slideRadius').value = found.params.radius;
+                    document.getElementById('selectFont').value = found.params.font;
+
+                    document.getElementById('statusUniverseId').textContent = `${found.id} • ${found.topic.toUpperCase()}`;
+                    document.getElementById('browserUrl').textContent = `https://multiverse.internal/${found.id.toLowerCase()}`;
+
+                    this.synthesizeCurrent();
+                }
+            }
+
+            synthesizeCurrent() {
+                const { html, css, js } = this.buildProceduralCode(this.currentUniverse);
+                
+                document.getElementById('codeHtml').value = html;
+                document.getElementById('codeCss').value = css;
+                document.getElementById('codeJs').value = js;
+
+                document.getElementById('jsonManifest').textContent = JSON.stringify(this.currentUniverse, null, 2);
+
+                this.renderIframe(html, css, js);
+            }
+
+            onManualCodeEdit() {
+                const html = document.getElementById('codeHtml').value;
+                const css = document.getElementById('codeCss').value;
+                const js = document.getElementById('codeJs').value;
+                this.renderIframe(html, css, js);
+            }
+
+            renderIframe(html, css, js) {
+                const iframe = document.getElementById('sitePreviewFrame');
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+
+                const fullDocument = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <script src="https://cdn.tailwindcss.com"><\/script>
+                        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+                        <link href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(this.params.font)}:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+                        <style>
+                            body { font-family: '${this.params.font}', sans-serif; }
+                            ${css}
+                        </style>
+                    </head>
+                    <body>
+                        ${html}
+                        <script>
+                            try {
+                                ${js}
+                            } catch(err) {
+                                console.error("Dynamic JS Error:", err);
+                            }
+                        <\/script>
+                    </body>
+                    </html>
+                `;
+
+                doc.open();
+                doc.write(fullDocument);
+                doc.close();
+            }
+
+            reloadFrame() {
+                this.onManualCodeEdit();
+                audioEngine.playClickSound();
+            }
+
+            exportSingleHTML() {
+                const html = document.getElementById('codeHtml').value;
+                const css = document.getElementById('codeCss').value;
+                const js = document.getElementById('codeJs').value;
+
+                const standaloneHTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KKK Builder</title>
-<style>
-:root { --p: #6366f1; --bg: #0f172a; --txt: #f8fafc; }
-body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--txt); margin: 0; line-height: 1.5; }
-header { padding: 4rem 1rem; text-align: center; background: linear-gradient(to bottom, #1e293b, var(--bg)); }
-h1 { font-size: 3.5rem; margin: 0; background: linear-gradient(45deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-section { max-width: 800px; margin: 0 auto; padding: 2rem; }
-.card { background: #1e293b; border: 1px solid #334155; padding: 2rem; border-radius: 1rem; margin-bottom: 2rem; }
-.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
-button { background: var(--p); color: white; border: none; padding: 1rem 2rem; border-radius: 0.5rem; font-weight: bold; cursor: pointer; width: 100%; font-size: 1.1rem; }
-input, select, textarea { width: 100%; padding: 0.8rem; margin: 0.5rem 0 1.5rem; border-radius: 0.4rem; border: 1px solid #334155; background: #0f172a; color: white; box-sizing: border-box; }
-.badge { background: #334155; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.8rem; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${this.currentUniverse.topic} - Generated Multiverse Site</title>
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(this.params.font)}:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: '${this.params.font}', sans-serif; }
+        ${css}
+    </style>
 </head>
 <body>
-<header>
-<h1>KKK Builder</h1>
-<p>Infinite Web Architectures. Zero Effort.</p>
-</header>
-<section>
-<div class="card">
-<h2>🚀 Start Building</h2>
-<label>Website Complexity</label>
-<select>
-<option>Simple Landing Page</option>
-<option>E-Commerce Engine</option>
-<option>Complex SaaS Dashboard</option>
-<option>Social Network Architecture</option>
-</select>
-<label>Core Purpose</label>
-<input type="text" placeholder="e.g. A high-tech coffee shop site">
-<label>Desired Features</label>
-<textarea rows="3" placeholder="AI chat, payment gateway, real-time database..."></textarea>
-<button>Generate Infinite Sites</button>
-</div>
-<div class="grid">
-<div class="card">
-<h3><span class="badge">Active</span> Infinite Engine</h3>
-<p>Our neural engine generates thousands of unique, production-ready sites per minute.</p>
-</div>
-<div class="card">
-<h3><span class="badge">Pro</span> Any Scale</h3>
-<p>From basic blogs to complex, multi-layered web applications.</p>
-</div>
-</div>
-</section>
+    ${html}
+    <script>
+        ${js}
+    <\/script>
+</body>
+</html>`;
+
+                const blob = new Blob([standaloneHTML], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${this.currentUniverse.topic.toLowerCase().replace(/[^a-z0-9]/g, '-')}-site.html`;
+                a.click();
+                URL.revokeObjectURL(url);
+                audioEngine.playClickSound();
+            }
+
+            /**
+             * Multi-Template Procedural HTML/CSS/JS Generator Logic
+             */
+            buildProceduralCode(universe) {
+                const topic = universe.topic;
+                const archetype = universe.archetype;
+                const hue = universe.params.hue;
+                const radius = universe.params.radius;
+
+                // Dynamic CSS variables based on procedural controls
+                const css = `
+                    :root {
+                        --primary-hue: ${hue};
+                        --brand-primary: hsl(${hue}, 85%, 60%);
+                        --brand-dark: hsl(${hue}, 60%, 8%);
+                        --brand-surface: hsl(${hue}, 30%, 14%);
+                        --user-radius: ${radius}px;
+                    }
+
+                    .theme-radius { border-radius: var(--user-radius); }
+                    .brand-gradient { background: linear-gradient(135deg, hsl(${hue}, 80%, 60%), hsl(${(hue + 45) % 360}, 80%, 50%)); }
+                    .brand-glow { box-shadow: 0 0 20px -3px hsl(${hue}, 80%, 50%, 0.4); }
+                `;
+
+                let html = '';
+                let js = '';
+
+                // Generator switch according to selected archetype
+                switch (archetype) {
+                    case 'cyberpunk':
+                        html = `
+                        <div class="min-h-screen bg-black text-green-400 p-6 font-mono border-4 border-green-500/40 relative overflow-hidden">
+                            <div class="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%)] bg-[length:100%_4px] pointer-events-none opacity-40"></div>
+                            <header class="flex justify-between items-center pb-6 border-b border-green-800">
+                                <h1 class="text-2xl font-extrabold tracking-widest text-pink-500 animate-pulse">${topic.toUpperCase()} [SYSTEM ONLINE]</h1>
+                                <span class="text-xs bg-green-950 px-3 py-1 border border-green-500 theme-radius">STATUS: OVERRIDDEN</span>
+                            </header>
+                            
+                            <main class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                                <div class="bg-slate-950 p-6 border border-green-900 theme-radius">
+                                    <h2 class="text-lg font-bold text-cyan-400 mb-3"><i class="fa-solid fa-terminal mr-2"></i>Neural Terminal Command</h2>
+                                    <div id="cyberConsole" class="h-40 overflow-y-auto bg-black p-3 text-xs text-green-400 font-mono border border-green-950 rounded mb-4">
+                                        > Initializing ${topic} protocol...<br>
+                                        > Accessing encrypted mainframe...<br>
+                                    </div>
+                                    <button onclick="triggerGlitch()" class="px-4 py-2 brand-gradient text-black font-bold text-xs uppercase tracking-wider theme-radius hover:opacity-90">Inject Data Surge</button>
+                                </div>
+
+                                <div class="bg-slate-950 p-6 border border-green-900 theme-radius flex flex-col justify-between">
+                                    <div>
+                                        <h2 class="text-lg font-bold text-pink-400 mb-2"><i class="fa-solid fa-microchip mr-2"></i>Quantum Core Status</h2>
+                                        <p class="text-xs text-slate-400 mb-4">Live sub-space telemetry feed active for ${topic}.</p>
+                                    </div>
+                                    <canvas id="matrixCanvas" class="w-full h-32 bg-black border border-green-950 rounded"></canvas>
+                                </div>
+                            </main>
+                        </div>`;
+
+                        js = `
+                            function triggerGlitch() {
+                                const consoleBox = document.getElementById('cyberConsole');
+                                consoleBox.innerHTML += '> WARP INJECTION DETECTED: ' + Math.random().toString(36).substring(7) + '<br>';
+                                consoleBox.scrollTop = consoleBox.scrollHeight;
+                            }
+
+                            // Interactive Mini Canvas Matrix Animation
+                            const c = document.getElementById('matrixCanvas');
+                            if(c) {
+                                const ctx = c.getContext('2d');
+                                c.width = c.offsetWidth;
+                                c.height = c.offsetHeight;
+                                const chars = "01010101010101HYPER";
+                                function drawMatrix() {
+                                    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+                                    ctx.fillRect(0,0,c.width,c.height);
+                                    ctx.fillStyle = '#0f0';
+                                    ctx.font = '10px monospace';
+                                    for(let i=0; i<20; i++) {
+                                        ctx.fillText(chars[Math.floor(Math.random()*chars.length)], Math.random()*c.width, Math.random()*c.height);
+                                    }
+                                }
+                                setInterval(drawMatrix, 100);
+                            }
+                        `;
+                        break;
+
+                    case 'portfolio':
+                        html = `
+                        <div class="min-h-screen bg-slate-950 text-slate-100 p-8">
+                            <nav class="flex justify-between items-center max-w-5xl mx-auto mb-16">
+                                <span class="text-xl font-bold bg-clip-text text-transparent brand-gradient">${topic}</span>
+                                <div class="space-x-6 text-sm text-slate-400">
+                                    <a href="#work" class="hover:text-white transition">Selected Work</a>
+                                    <a href="#about" class="hover:text-white transition">About</a>
+                                    <a href="#contact" class="hover:text-white transition">Contact</a>
+                                </div>
+                            </nav>
+
+                            <main class="max-w-5xl mx-auto space-y-16">
+                                <section class="space-y-4">
+                                    <span class="text-xs font-mono uppercase tracking-widest text-indigo-400">Creative & Interactive Engineering</span>
+                                    <h1 class="text-5xl font-extrabold tracking-tight leading-tight">Designing Next-Gen Digital Universes for ${topic}.</h1>
+                                    <p class="text-lg text-slate-400 max-w-2xl">Specializing in high-performance web experiences, procedural UI architectures, and dynamic generative art.</p>
+                                    <div class="pt-4 flex space-x-4">
+                                        <button class="px-6 py-3 brand-gradient text-white font-semibold text-sm theme-radius brand-glow hover:opacity-90 transition">Explore Showcase</button>
+                                        <button class="px-6 py-3 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 font-semibold text-sm theme-radius transition">Get in Touch</button>
+                                    </div>
+                                </section>
+
+                                <section id="work" class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8">
+                                    <div class="bg-slate-900 p-6 theme-radius border border-slate-800 hover:border-indigo-500/50 transition">
+                                        <div class="h-40 bg-slate-950 theme-radius mb-4 border border-slate-800 flex items-center justify-center text-slate-600"><i class="fa-solid fa-shapes text-4xl"></i></div>
+                                        <h3 class="text-lg font-bold mb-1">Project Neural Alpha</h3>
+                                        <p class="text-xs text-slate-400">Autonomous design systems built for real-time web engines.</p>
+                                    </div>
+                                    <div class="bg-slate-900 p-6 theme-radius border border-slate-800 hover:border-indigo-500/50 transition">
+                                        <div class="h-40 bg-slate-950 theme-radius mb-4 border border-slate-800 flex items-center justify-center text-slate-600"><i class="fa-solid fa-cubes text-4xl"></i></div>
+                                        <h3 class="text-lg font-bold mb-1">Vortex Spatial Renderer</h3>
+                                        <p class="text-xs text-slate-400">GPU-accelerated WebGL visuals for modern browser portals.</p>
+                                    </div>
+                                </section>
+                            </main>
+                        </div>`;
+                        break;
+
+                    case 'dashboard':
+                        html = `
+                        <div class="min-h-screen bg-slate-950 text-slate-200 p-6">
+                            <header class="flex justify-between items-center mb-6 pb-4 border-b border-slate-800">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-8 h-8 brand-gradient theme-radius flex items-center justify-center text-white font-bold"><i class="fa-solid fa-chart-line"></i></div>
+                                    <h1 class="text-lg font-bold text-white">${topic} Telemetry Console</h1>
+                                </div>
+                                <div class="flex space-x-2">
+                                    <span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs theme-radius flex items-center"><i class="fa-solid fa-circle text-[8px] mr-2"></i> Live Feed</span>
+                                </div>
+                            </header>
+
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                                <div class="bg-slate-900/60 p-4 theme-radius border border-slate-800">
+                                    <div class="text-xs text-slate-400">Total System Throughput</div>
+                                    <div class="text-2xl font-bold text-white mt-1" id="dashMetric1">94.8%</div>
+                                    <div class="text-[10px] text-emerald-400 mt-1"><i class="fa-solid fa-arrow-up"></i> +4.2% from baseline</div>
+                                </div>
+                                <div class="bg-slate-900/60 p-4 theme-radius border border-slate-800">
+                                    <div class="text-xs text-slate-400">Active Nodes</div>
+                                    <div class="text-2xl font-bold text-white mt-1">1,420</div>
+                                    <div class="text-[10px] text-emerald-400 mt-1"><i class="fa-solid fa-check"></i> Operational</div>
+                                </div>
+                                <div class="bg-slate-900/60 p-4 theme-radius border border-slate-800">
+                                    <div class="text-xs text-slate-400">Latency Average</div>
+                                    <div class="text-2xl font-bold text-white mt-1" id="dashMetric2">12 ms</div>
+                                    <div class="text-[10px] text-indigo-400 mt-1">Optimal Response</div>
+                                </div>
+                                <div class="bg-slate-900/60 p-4 theme-radius border border-slate-800">
+                                    <div class="text-xs text-slate-400">Error Frequency</div>
+                                    <div class="text-2xl font-bold text-white mt-1">0.002%</div>
+                                    <div class="text-[10px] text-slate-500 mt-1">Nominal status</div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-900/60 p-6 theme-radius border border-slate-800">
+                                <h3 class="text-sm font-bold text-slate-300 mb-4">Real-Time Event Stream Analytics</h3>
+                                <canvas id="dashGraph" class="w-full h-48 block"></canvas>
+                            </div>
+                        </div>`;
+
+                        js = `
+                            const g = document.getElementById('dashGraph');
+                            if(g) {
+                                const ctx = g.getContext('2d');
+                                g.width = g.offsetWidth;
+                                g.height = g.offsetHeight;
+                                
+                                let points = Array.from({length: 30}, () => Math.random() * g.height * 0.6 + 20);
+                                function renderGraph() {
+                                    ctx.clearRect(0,0,g.width,g.height);
+                                    ctx.beginPath();
+                                    ctx.strokeStyle = 'hsl(${hue}, 85%, 60%)';
+                                    ctx.lineWidth = 3;
+
+                                    const step = g.width / (points.length - 1);
+                                    points.forEach((p, idx) => {
+                                        const x = idx * step;
+                                        const y = g.height - p;
+                                        if(idx === 0) ctx.moveTo(x, y);
+                                        else ctx.lineTo(x, y);
+                                    });
+                                    ctx.stroke();
+                                }
+                                renderGraph();
+                                setInterval(() => {
+                                    points.shift();
+                                    points.push(Math.random() * g.height * 0.6 + 20);
+                                    renderGraph();
+                                }, 1500);
+                            }
+                        `;
+                        break;
+
+                    case 'ecommerce':
+                        html = `
+                        <div class="min-h-screen bg-slate-900 text-slate-100 p-6">
+                            <header class="flex justify-between items-center pb-6 border-b border-slate-800 max-w-6xl mx-auto">
+                                <h1 class="text-xl font-bold tracking-wider uppercase bg-clip-text text-transparent brand-gradient">${topic} Boutique</h1>
+                                <button onclick="toggleCart()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs theme-radius border border-slate-700 relative">
+                                    <i class="fa-solid fa-cart-shopping mr-2"></i>Cart (<span id="cartCount">0</span>)
+                                </button>
+                            </header>
+
+                            <main class="max-w-6xl mx-auto py-8">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div class="bg-slate-950 p-4 theme-radius border border-slate-800 flex flex-col justify-between">
+                                        <div>
+                                            <div class="h-44 bg-slate-900 theme-radius mb-3 flex items-center justify-center text-slate-600"><i class="fa-solid fa-box-open text-4xl"></i></div>
+                                            <h3 class="font-bold text-sm">Edition Alpha Model</h3>
+                                            <p class="text-xs text-slate-400 mt-1">Procedurally handcrafted premium collectible.</p>
+                                        </div>
+                                        <div class="mt-4 flex justify-between items-center">
+                                            <span class="font-mono text-sm font-bold text-emerald-400">$180.00</span>
+                                            <button onclick="addToCart()" class="px-3 py-1.5 brand-gradient text-xs font-bold text-white theme-radius">Add to Cart</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-slate-950 p-4 theme-radius border border-slate-800 flex flex-col justify-between">
+                                        <div>
+                                            <div class="h-44 bg-slate-900 theme-radius mb-3 flex items-center justify-center text-slate-600"><i class="fa-solid fa-gem text-4xl"></i></div>
+                                            <h3 class="font-bold text-sm">Vortex Prism Sensor</h3>
+                                            <p class="text-xs text-slate-400 mt-1">High-frequency optical spectral lens.</p>
+                                        </div>
+                                        <div class="mt-4 flex justify-between items-center">
+                                            <span class="font-mono text-sm font-bold text-emerald-400">$245.00</span>
+                                            <button onclick="addToCart()" class="px-3 py-1.5 brand-gradient text-xs font-bold text-white theme-radius">Add to Cart</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-slate-950 p-4 theme-radius border border-slate-800 flex flex-col justify-between">
+                                        <div>
+                                            <div class="h-44 bg-slate-900 theme-radius mb-3 flex items-center justify-center text-slate-600"><i class="fa-solid fa-bolt text-4xl"></i></div>
+                                            <h3 class="font-bold text-sm">Hyper-Drive Battery Cell</h3>
+                                            <p class="text-xs text-slate-400 mt-1">Solid state power storage matrix.</p>
+                                        </div>
+                                        <div class="mt-4 flex justify-between items-center">
+                                            <span class="font-mono text-sm font-bold text-emerald-400">$95.00</span>
+                                            <button onclick="addToCart()" class="px-3 py-1.5 brand-gradient text-xs font-bold text-white theme-radius">Add to Cart</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </main>
+                        </div>`;
+
+                        js = `
+                            let cart = 0;
+                            function addToCart() {
+                                cart++;
+                                document.getElementById('cartCount').textContent = cart;
+                            }
+                            function toggleCart() {
+                                alert('Cart total items: ' + cart);
+                            }
+                        `;
+                        break;
+
+                    case 'geocities':
+                        html = `
+                        <div class="min-h-screen bg-blue-950 text-yellow-300 p-4 font-serif">
+                            <center>
+                                <marquee class="bg-yellow-400 text-black font-bold p-1 text-sm">*** WELCOME TO THE OFFICIAL ${topic.toUpperCase()} HOMEPAGE! BEST VIEWED IN NETSCAPE NAVIGATOR 4.0 ***</marquee>
+                                <h1 class="text-3xl font-bold my-4 text-pink-500 italic">~ ${topic} ~</h1>
+                                <p class="text-xs text-cyan-300">Created by Webmaster NeonStar99</p>
+                                <div class="my-4">
+                                    <img src="https://placehold.co/400x100/ff00ff/ffffff?text=UNDER+CONSTRUCTION" class="inline-block border-2 border-yellow-400">
+                                </div>
+                            </center>
+
+                            <div class="max-w-xl mx-auto bg-black p-4 border-2 border-dashed border-cyan-400 text-xs space-y-3">
+                                <h2 class="text-sm font-bold text-green-400">> Guestbook Entries</h2>
+                                <p>"Super cool webpage! Add me to your webring!" - CosmicSurfer88</p>
+                                <p>"Great information on ${topic}. 5 stars!" - RetroDave</p>
+                                <hr class="border-yellow-400">
+                                <div class="text-center">
+                                    <span>Visitor Counter: </span>
+                                    <span class="bg-slate-900 border px-2 py-0.5 text-green-400 font-mono text-sm font-bold">004291</span>
+                                </div>
+                            </div>
+                        </div>`;
+                        break;
+
+                    case 'zen':
+                        html = `
+                        <div class="min-h-screen bg-slate-950 text-slate-300 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+                            <div class="max-w-md z-10 space-y-6">
+                                <div class="w-16 h-16 rounded-full brand-gradient mx-auto flex items-center justify-center text-white text-2xl shadow-xl animate-pulse">
+                                    <i class="fa-solid fa-spa"></i>
+                                </div>
+                                <h1 class="text-3xl font-light tracking-wide text-white">${topic} Sanctuary</h1>
+                                <p class="text-xs text-slate-400 leading-relaxed">Breathe gently. Explore ambient stillness in this procedural acoustic space.</p>
+                                <button onclick="triggerZenSynth()" class="px-8 py-3 rounded-full border border-slate-700 hover:border-slate-500 text-xs uppercase tracking-widest text-slate-200 transition bg-slate-900/50">
+                                    Harmonize Tone
+                                </button>
+                            </div>
+                        </div>`;
+
+                        js = `
+                            function triggerZenSynth() {
+                                try {
+                                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                                    const osc = ctx.createOscillator();
+                                    const gain = ctx.createGain();
+                                    osc.type = 'sine';
+                                    osc.frequency.setValueAtTime(261.63, ctx.currentTime); // C4
+                                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                                    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 3);
+                                    osc.connect(gain);
+                                    gain.connect(ctx.destination);
+                                    osc.start();
+                                    osc.stop(ctx.currentTime + 3);
+                                } catch(e) {}
+                            }
+                        `;
+                        break;
+
+                    default: // Default SaaS
+                        html = `
+                        <div class="min-h-screen bg-slate-950 text-slate-100 p-8">
+                            <header class="flex justify-between items-center max-w-6xl mx-auto mb-16">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 brand-gradient theme-radius flex items-center justify-center text-white font-extrabold"><i class="fa-solid fa-layer-group"></i></div>
+                                    <span class="font-bold text-lg">${topic}</span>
+                                </div>
+                                <button class="px-4 py-2 brand-gradient text-white text-xs font-semibold theme-radius brand-glow">Launch Platform</button>
+                            </header>
+
+                            <main class="max-w-4xl mx-auto text-center space-y-6">
+                                <span class="px-3 py-1 rounded-full text-xs font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">NEXT-GEN INFRASTRUCTURE</span>
+                                <h1 class="text-5xl font-extrabold tracking-tight leading-tight">Scale Your Digital Operations with ${topic}</h1>
+                                <p class="text-slate-400 text-base max-w-2xl mx-auto">Automate workflows, synthesize procedural assets, and deploy real-time micro-applications directly from one unified cloud dashboard.</p>
+                                
+                                <div class="pt-6 flex justify-center space-x-4">
+                                    <button class="px-6 py-3 brand-gradient text-white font-semibold text-sm theme-radius brand-glow">Start Free Trial</button>
+                                    <button class="px-6 py-3 bg-slate-900 border border-slate-800 text-slate-300 font-semibold text-sm theme-radius">Read Documentation</button>
+                                </div>
+
+                                <div class="pt-12 grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                                    <div class="bg-slate-900 p-6 theme-radius border border-slate-800">
+                                        <i class="fa-solid fa-bolt text-indigo-400 text-xl mb-3"></i>
+                                        <h3 class="font-bold text-sm mb-1">Instant Synthesis</h3>
+                                        <p class="text-xs text-slate-400">Generate responsive frontend modules on demand.</p>
+                                    </div>
+                                    <div class="bg-slate-900 p-6 theme-radius border border-slate-800">
+                                        <i class="fa-solid fa-shield-halved text-indigo-400 text-xl mb-3"></i>
+                                        <h3 class="font-bold text-sm mb-1">Quantum Encryption</h3>
+                                        <p class="text-xs text-slate-400">End-to-end telemetry protection standard.</p>
+                                    </div>
+                                    <div class="bg-slate-900 p-6 theme-radius border border-slate-800">
+                                        <i class="fa-solid fa-globe text-indigo-400 text-xl mb-3"></i>
+                                        <h3 class="font-bold text-sm mb-1">Global Edge Network</h3>
+                                        <p class="text-xs text-slate-400">Sub-millisecond node delivery across all regions.</p>
+                                    </div>
+                                </div>
+                            </main>
+                        </div>`;
+                        break;
+                }
+
+                return { html, css, js };
+            }
+        }
+
+        const engine = new ProceduralEngine();
+
+        /**
+         * User Interface Controller & Viewport Switcher
+         */
+        class UIController {
+            constructor() {
+                this.currentMainTab = 'preview';
+                this.currentSideTab = 'generator';
+            }
+
+            switchMainTab(tab) {
+                audioEngine.playClickSound();
+                this.currentMainTab = tab;
+
+                ['preview', 'html', 'css', 'js', 'config'].forEach(t => {
+                    const btn = document.getElementById(`tab-${t}`);
+                    const view = document.getElementById(`view-${t}`);
+                    
+                    if (t === tab) {
+                        btn.className = 'px-3 py-1.5 rounded-md text-xs font-medium bg-slate-800 text-indigo-400 flex items-center space-x-1.5 border border-slate-700/60';
+                        view.classList.remove('hidden');
+                    } else {
+                        btn.className = 'px-3 py-1.5 rounded-md text-xs font-medium text-slate-400 hover:text-slate-200 flex items-center space-x-1.5';
+                        view.classList.add('hidden');
+                    }
+                });
+            }
+
+            switchSideTab(tab) {
+                audioEngine.playClickSound();
+                this.currentSideTab = tab;
+
+                ['generator', 'portals'].forEach(t => {
+                    const btn = document.getElementById(`sideTab-${t}`);
+                    const panel = document.getElementById(`panel-${t}`);
+
+                    if (t === tab) {
+                        btn.className = 'flex-1 py-3 border-b-2 border-indigo-500 text-indigo-400 font-semibold bg-slate-800/40';
+                        panel.classList.remove('hidden');
+                        if (t === 'portals') portalTree.draw();
+                    } else {
+                        btn.className = 'flex-1 py-3 border-b-2 border-transparent hover:text-slate-200';
+                        panel.classList.add('hidden');
+                    }
+                });
+            }
+
+            setViewport(mode) {
+                audioEngine.playClickSound();
+                const frame = document.getElementById('viewportFrame');
+                
+                // Reset active styles on viewport buttons
+                document.querySelectorAll('.vp-btn').forEach(btn => {
+                    btn.className = 'vp-btn p-1.5 px-2.5 rounded text-xs font-medium text-slate-400 hover:text-slate-200';
+                });
+                
+                document.getElementById(`vp-${mode}`).className = 'vp-btn p-1.5 px-2.5 rounded text-xs font-medium bg-slate-800 text-indigo-400';
+
+                if (mode === 'desktop') {
+                    frame.style.width = '100%';
+                    frame.style.height = '100%';
+                } else if (mode === 'tablet') {
+                    frame.style.width = '768px';
+                    frame.style.height = '90%';
+                } else if (mode === 'mobile') {
+                    frame.style.width = '375px';
+                    frame.style.height = '667px';
+                }
+            }
+        }
+
+        const ui = new UIController();
+
+        // Boot system on window ready
+        window.onload = () => {
+            engine.init();
+        };
+    </script>
 </body>
 </html>
